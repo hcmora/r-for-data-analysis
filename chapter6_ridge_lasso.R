@@ -27,6 +27,7 @@ library(glmnet)
 # We'll model the ridge regression using lambda = 10^10 to 0.01
 grid = 10^seq(from=10,to=-2,length=100)
 ridge.mod = glmnet(x,y,alpha=0,lambda=grid)
+plot(ridge.mod,xvar="lambda",label=TRUE)
 
 # To access the coefficients for each lambda we can use the coef() function
 dim(coef(ridge.mod))
@@ -46,7 +47,7 @@ sqrt(sum(coef(ridge.mod)[-1,60]^2))
 # We can see that for a much lower lambda (705 instead of 11498), the l2 value
 # increases from 6.36 to 57.1
 
-# We can also obtain the lambda for a specific value using the predict function
+# We can also obtain the coefficients for a specific lambda using the predict function
 predict(ridge.mod,s=50,type="coefficients")[1:20,]
 
 # Now we'll split the data using another process. Instead of creating a True/False
@@ -100,9 +101,11 @@ predict(out,type="coefficients",s=bestlam)[1:20,]
 #####################################
 
 lasso.mod = glmnet(x[train,],y[train],alpha=1,lambda=grid)
-plot(lasso.mod)
-
+plot(lasso.mod,xvar="lambda",label=TRUE)
 # From the plot we can see that depending from the lambda parameter, some coefficients will be zero
+
+# We can also check the deviance explained with the values of the coefficients
+plot(lasso.mod,xvar="dev",label=TRUE)
 
 set.seed(1)
 cv.out = cv.glmnet(x[train,],y[train],alpha=1)
@@ -118,3 +121,13 @@ mean((lasso.pred-y.test)^2)
 out = glmnet(x,y,alpha=1,lambda=grid)
 lasso.coef = predict(out,type="coefficients",s=bestlam)[1:20,]
 lasso.coef
+
+## Another way of doing this process is as it follows
+
+lasso.tr = glmnet(x[train,],y[train])
+pred = predict(lasso.tr,x[-train,])
+rmse = sqrt(apply((y[-train]-pred)^2,2,mean))
+plot(log(lasso.tr$lambda),rmse,type="b",xlab="Log(lambda)")
+lam.best = lasso.tr$lambda[order(rmse)[1]]
+lam.best
+coef(lasso.tr,s=lam.best)
